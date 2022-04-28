@@ -3,7 +3,7 @@ import sys
 import random
 import numpy as np
 import copy
-from pyqlearning.qlearning.greedy_q_learning import GreedyQLearning
+from prelab_files.greedy_q_learning import GreedyQLearning
 
 
 class MazeGreedyQLearning(GreedyQLearning):
@@ -56,7 +56,7 @@ class MazeGreedyQLearning(GreedyQLearning):
 
         for x in range(self.__map_arr.shape[1]):
             for y in range(self.__map_arr.shape[0]):
-                if (x, y) == self.__start_point_tuple or (x, y) == self.__end_point_tuple:
+                if (y, x) == self.__start_point_tuple or (y, x) == self.__end_point_tuple:
                     continue
                 arr_value = self.__map_arr[y][x]
                 if arr_value == self.__wall_label:
@@ -77,8 +77,11 @@ class MazeGreedyQLearning(GreedyQLearning):
             raise ValueError("It is the wall. (x, y)=(%d, %d)" % (x, y))
 
         around_map = [(x, y-1), (x, y+1), (x-1, y), (x+1, y)]
-        possible_actoins_list = [(_x, _y) for _x, _y in around_map if self.__map_arr[_y][_x] != self.__wall_label and self.__map_arr[_y][_x] != self.__start_point_label]
+        possible_actoins_list = [(_x, _y) for _x, _y in around_map if self.__map_arr[_y][_x] != self.__wall_label]
+        # NOTE: and self.__map_arr[_y][_x] != self.__start_point_label was removed
         return possible_actoins_list
+
+
 
     def observe_reward_value(self, state_key, action_key):
         '''
