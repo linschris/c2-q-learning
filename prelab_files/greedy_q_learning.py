@@ -90,8 +90,6 @@ class GreedyQLearning(QLearning):
                 )
                 
                 reward_value = self.observe_reward_value(state_key, action_key)
-                if(reward_value < 0):
-                    print(reward_value)
 
             if len(next_action_list):
                 # Max-Q-Value in next action time.

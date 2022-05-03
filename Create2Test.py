@@ -15,7 +15,7 @@ def createEmptyMaze(map_d = 10):
     map_arr[0, :] = wall_label
     map_arr[:, -1] = wall_label
     map_arr[-1, :] = wall_label
-    map_arr[1][2] = start_point_label
+    map_arr[1][1] = start_point_label
     map_arr[map_d - 2][map_d - 2] = end_point_label
     # print(map_arr)
     return map_arr
@@ -48,7 +48,9 @@ def agentLearn(map_arr, alpha_value, gamma_value, epsilon_value, limit, num_epis
     for i in range(num_episodes):
         # random_x = random.randint(1, 8)
         # random_y = random.randint(1, 8)
-        maze_q_learning.learn(state_key=(1,2), limit=limit)
+        maze_q_learning.learn(state_key=(1,1), limit=limit)
+        # q_df = maze_q_learning.q_df.sort_values(by=["q_value"], ascending=False)
+        # print(maze_q_learning.q_df)
 
 
     maze_q_learning.q_df['q_value'] = maze_q_learning.q_df['q_value'].fillna(0)
@@ -56,30 +58,41 @@ def agentLearn(map_arr, alpha_value, gamma_value, epsilon_value, limit, num_epis
     return maze_q_learning
 
 def main():
-    map_arr = createEmptyMaze(5)
-    map_arr = np.asanyarray(createComplexMaze())
+    # map_arr = createEmptyMaze(5)
+    # map_arr = np.asanyarray(createComplexMaze())
+    print(createEmptyMaze(5))
+    print(createBridgeMaze())
     print(createComplexMaze())
-    # map_arr = createComplexMaze()
+    map_arr = createEmptyMaze(5)
 
-    q_learner = agentLearn(map_arr=map_arr, alpha_value=0.3, gamma_value=0.99, epsilon_value=0.9, limit=20, num_episodes=10)
+    # 0.9, 0.9, 0.1, 10, 20 for simple maze
+
+    q_learner = agentLearn(map_arr=map_arr, alpha_value=0.9, gamma_value=0.9, epsilon_value=0.009, limit=100000, num_episodes=1)
     c2_policy = Policy(q_learner)
     c2_policy.printQTable()
-    greedy_c2 = GreedyCreate2(c2_policy, 1000, state=(2,1), debug=True)
-    # greedy_c2.execute_policy()
-    # print(greedy_c2.path_taken)
-    curr_action = greedy_c2.policy.getAction(greedy_c2.state)
-    curr_direction = greedy_c2.determine_direction(greedy_c2.state, curr_action)
-    print(greedy_c2.state, curr_action, curr_direction)
+    greedy_c2 = GreedyCreate2(c2_policy, '/dev/tty.usbserial-DN02693O', state=(1,1), debug=True)
+    greedy_c2.execute_policy()
+    # print(q_learner.inference(10))
+
+def createBridgeMaze():
+    start_point_label, end_point_label, wall_label, agent_label = ("S", "G", "#", "@")
+    map_arr = [[wall_label] * 7,
+              [wall_label, wall_label, 1, 1, 1, wall_label, wall_label],
+              [wall_label, start_point_label, 10, 10, 10, end_point_label, wall_label],
+              [wall_label, wall_label, 1, 1, 1, wall_label, wall_label],
+              [wall_label] * 7
+              ]
+    return np.asanyarray(map_arr)
 
 def createComplexMaze():
     start_point_label, end_point_label, wall_label, agent_label = ("S", "G", "#", "@")
-    map_arr = [[wall_label] * 7,
-              [wall_label, wall_label, -10, -10, -10, wall_label, wall_label],
-              [wall_label, start_point_label, -0.1, -0.1, -0.1, end_point_label, wall_label],
-              [wall_label, wall_label, -10, -10, -10, wall_label, wall_label],
-              [wall_label] * 7
+    map_arr = [[wall_label] * 12,
+              [wall_label, wall_label, 10, wall_label, 0, -1, -2, 5, 5, 5, 5, wall_label],
+              [wall_label, start_point_label, 1, 1, 1, wall_label, wall_label, wall_label, wall_label, wall_label, 0, wall_label],
+              [wall_label, wall_label, 1, wall_label, wall_label, wall_label, wall_label, wall_label, wall_label, wall_label, end_point_label, wall_label],
+              [wall_label, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, wall_label],
+              [wall_label] * 12
               ]
-    # print(map_arr)
     return np.asanyarray(map_arr)
 
 

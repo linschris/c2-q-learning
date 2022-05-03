@@ -1,6 +1,4 @@
-from os import stat
 import random
-from MazeQLearning import MazeQLearning
 
 class Policy:
     def __init__(self, q_learning_instance):
@@ -13,6 +11,7 @@ class Policy:
         self.initializePolicy()
 
     def printQTable(self):
+        # Helpful debugging tool
         for index, row in self.q_table.iterrows():
             state, action, q_val = row['state_key'], row['action_key'], row['q_value']
             print(f'{state} -> {action} has a value of {q_val}')
@@ -29,7 +28,7 @@ class Policy:
                 continue
             self.possible_actions[state] = self.q_learner.extract_possible_actions(state)
             self.max_q_val[state] = 0
-            print(state, self.q_learner.extract_possible_actions(state))
+            # print(state, self.q_learner.extract_possible_actions(state))
             self.initializeNextStates(self.possible_actions[state])
 
 
@@ -52,11 +51,9 @@ class Policy:
             return self.best_actions[state]
         elif state not in self.possible_actions:
             print(f"Invalid state. No found actions to perform at state {state}.")
-            return ValueError("Invalid state. No found actions to perform.")
+            return (-1,-1)
         else:
             return random.choice(self.possible_actions[state])
-    
-    
     
     def atGoal(self, state):
         return self.q_learner.check_the_end_flag(state)

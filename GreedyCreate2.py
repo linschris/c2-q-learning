@@ -9,11 +9,14 @@ import time
 '''
 class GreedyCreate2(Create2):
     def __init__(self, policy, port, baud=115200, curr_dir='N', state=(1, 1), debug=True):
-        # super().__init__(port, baud=baud)
+        self.debug = debug # Debug mode mainly refers to if we're disconnected from IRL Create2 (but it also prints statements)
+        if not self.debug:
+            super().__init__(port, baud=baud)
+            self.start()
+            self.full()
         self.policy = policy
         self.state = state
-        self.curr_dir = curr_dir
-        self.debug = debug # Debug mode mainly refers to if we're disconnected from IRL Create2
+        self.curr_dir = curr_dir 
         self.path_taken = []
 
         # (x, y) diff = direction
@@ -21,17 +24,25 @@ class GreedyCreate2(Create2):
     
     def __del__(self):
         if not self.debug:
+            self.drive_stop()
+            self.stop()
             super().__del__()
         else:
             print(self.policy.best_actions)
+            print(self.policy.possible_actions)
             self.policy.printQTable()
-            pass
+        print(self.path_taken)
 
     def get_relative_direction(self):
+        # Based on our current facing direction, affect what direction we need to
+        # turn to get the next state. 
+        # 
+        # Ex: If we're facing west, we need to go west to go one y down (South)
+
         if self.curr_dir == "W":
-            self.possible_directions = {(-1, 0): "N", (1, 0): "S", (0, -1): "E", (0, 1): "W"}
+            self.possible_directions = {(-1, 0): "N", (1, 0): "S", (0, 1): "W", (0, -1): "E"}
         elif self.curr_dir == "E":
-            self.possible_directions = {(1, 0): "N", (-1, 0): "S", (0, 1): "E", (0, -1): "W"}
+            self.possible_directions = {(1, 0): "N", (-1, 0): "S", (0, -1): "W", (0, 1): "E"}
         elif self.curr_dir == "S":
             self.possible_directions = {(0, 1): "N", (0, -1): "S", (-1, 0): "E", (1, 0): "W"}
         else: 
@@ -39,13 +50,37 @@ class GreedyCreate2(Create2):
 
     def determine_direction(self, state1, state2):
         # Determines direction to go based on initial and final state.
-        self.get_relative_direction()
+
         state_diff = tuple(np.subtract(state2, state1)) # subtract x,y tuples
+        self.get_relative_direction() 
+        if self.debug:
+            print(f"Currently, I need to go {state_diff} while facing {self.curr_dir}.")
+            print(f"Currently, I need to go {self.possible_directions[state_diff]}")
+            print(f"So, in reality, I'm now going to face: {self.determine_real_direction(self.possible_directions[state_diff])} after turning.")
+
+        # Given that we'll turn the given direction in self.possible_directions[state_diff]
+        # Change our current direction to our new current facing direction 
+        self.curr_dir = self.determine_real_direction(self.possible_directions[state_diff])
+
+        # Return the direction we need to turn
         return self.possible_directions[state_diff] if state_diff in self.possible_directions else -1
-    
+
+    def determine_real_direction(self, new_dir):
+        # This is useful to keep track of our real direction
+        # As going "south" twice, we should be facing north (in memory) for example. 
+        if self.curr_dir == "S":
+            real_dir = {"N": "S", "S": "N", "E": "W", "W": "E"}
+        elif self.curr_dir == "W":
+            real_dir = {"N": "W", "S": "E", "E": "N", "W": "S"}
+        elif self.curr_dir == "E":
+            real_dir = {"N": "E", "S": "W", "E": "S", "W": "N"}
+        else:
+            real_dir = {"N": "N", "S": "S", "E": "E", "W": "W"}
+        return real_dir[new_dir]
+
+
     def turn(self, direction):
-        # Turns a given amount based on the direction given
-        self.curr_dir = direction
+        # Turns a given amount to the right based on the direction given
         if direction == "E":
             self.turn_angle(90)
         elif direction == "W":
@@ -53,22 +88,32 @@ class GreedyCreate2(Create2):
         elif direction == "S":
             self.turn_angle(180)
 
-    def turn_angle(self, angle):
-        angle_t = curr = super().get_sensors()['angle']
-        while abs(curr - angle_t) < angle:
-            super().drive_direct(0, 25) # Turn left slowly
-            curr = super().get_sensors()['angle']
-        super().drive_stop()
+    def turn_angle(self, given_angle):
+        # Turns a given angle in increments of 90
+        # in an attempt to minimize error.  
 
+        for i in range(0, given_angle // 90):
+            angle_t = curr = self.get_sensors().angle
+            while abs(curr - angle_t) < 95:
+                self.drive_direct(-100, 100) # Turn right slowly
+                curr += self.get_sensors().angle
+            self.drive_stop()
+
+    # def turn_angle(self, given_angle):
+    #     curr_time = time.time()
+    #     while time.time() - curr_time < (1.35 * given_angle // 90):
+    #         self.drive_direct(-100, 100)
+    #     self.drive_stop()
 
     def move(self, direction):
-        # Move by one tile in a specific direction
-        self.turn(self.determine_direction(direction))
+        # Move by one "tile"/unit in a specific direction
+        self.turn(direction)
         start_time = curr_time = time.time()
-        while curr_time - start_time < 5:
-            super().drive_direct(50, 50)
+        while curr_time - start_time < 4.5:
+            self.drive_direct(75, 75)
             curr_time = time.time()
-        super().drive_stop()
+        self.drive_stop()
+    
 
     def execute_policy(self):
         '''
@@ -80,18 +125,23 @@ class GreedyCreate2(Create2):
                     Update state
                     Repeat
         '''
-        dir_path = []
         while not self.policy.atGoal(self.state):
-            curr_action = self.policy.getAction(self.state, self.state in self.path_taken)
+            # if self.state in self.path_taken, we've hit a cycle.
+            curr_action = self.policy.getAction(self.state, self.state in self.path_taken) 
+            if curr_action == (-1, -1):
+                # Invalid state
+                break
             curr_direction = self.determine_direction(self.state, curr_action)
             self.path_taken.append(self.state)
-            dir_path.append(self.policy.q_learner.observe_reward_value(self.state, curr_action))
             if not self.debug:
                 self.move(curr_direction) 
             else:
-                print(f'Current state: {self.state}, {self.policy.atGoal(self.state)}')
+                print(f'Current state: {self.state}, Moving: {curr_direction}, {self.policy.atGoal(self.state)}')
             self.state = curr_action
         self.path_taken.append(self.state)
-        print(sum(dir_path))
+    
+    def remove_cycle_from_path(self):
+        # self.path_taken = self.path_taken[self.path_taken.index(self.state,self.path_taken.index(self.state), 0):self.path_taken.index(self.state)]
+        pass
         
 

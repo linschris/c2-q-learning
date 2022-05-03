@@ -56,6 +56,7 @@ class MazeGreedyQLearning(GreedyQLearning):
 
         for x in range(self.__map_arr.shape[1]):
             for y in range(self.__map_arr.shape[0]):
+                # Modified from (x, y) to (y, x) as well
                 if (y, x) == self.__start_point_tuple or (y, x) == self.__end_point_tuple:
                     continue
                 arr_value = self.__map_arr[y][x]
@@ -78,7 +79,10 @@ class MazeGreedyQLearning(GreedyQLearning):
 
         around_map = [(x, y-1), (x, y+1), (x-1, y), (x+1, y)]
         possible_actoins_list = [(_x, _y) for _x, _y in around_map if self.__map_arr[_y][_x] != self.__wall_label]
-        # NOTE: and self.__map_arr[_y][_x] != self.__start_point_label was removed
+
+        # NOTE: and self.__map_arr[_y][_x] != self.__start_point_label was removed to allow for the start place
+        # to be a possible state to go back to.
+        
         return possible_actoins_list
 
 
@@ -140,7 +144,9 @@ class MazeGreedyQLearning(GreedyQLearning):
         x, y = state_key
         end_point_tuple = np.where(self.__map_arr == self.__end_point_label)
         end_point_x_arr, end_point_y_arr = end_point_tuple
-        if x == end_point_x_arr[0] and y == end_point_y_arr[0]:
+
+        # Modified to be y and x, as you want to check for arr[y][x] instead of [x][y]
+        if y == end_point_x_arr[0] and x == end_point_y_arr[0]:
             return True
         else:
             return False
