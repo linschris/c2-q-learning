@@ -4,16 +4,18 @@ import time
 
 '''
     A GreedyCreate2 class.
-    Inherits the methods from Create2, but has the power to take its environment
-    and develop a policy, and further actions from it.
+    Inherits the methods from Create2, but has the power to take a policy
+    and act upon it.
 '''
 class GreedyCreate2(Create2):
     def __init__(self, policy, port, baud=115200, curr_dir='N', state=(1, 1), debug=True):
         self.debug = debug # Debug mode mainly refers to if we're disconnected from IRL Create2 (but it also prints statements)
         if not self.debug:
+            # Start bot
             super().__init__(port, baud=baud)
             self.start()
             self.full()
+        
         self.policy = policy
         self.state = state
         self.curr_dir = curr_dir 
@@ -50,7 +52,6 @@ class GreedyCreate2(Create2):
 
     def determine_direction(self, state1, state2):
         # Determines direction to go based on initial and final state.
-
         state_diff = tuple(np.subtract(state2, state1)) # subtract x,y tuples
         self.get_relative_direction() 
         if self.debug:
@@ -84,18 +85,19 @@ class GreedyCreate2(Create2):
         if direction == "E":
             self.turn_angle(90)
         elif direction == "W":
-            self.turn_angle(270)
+            self.turn_angle(-90)
         elif direction == "S":
             self.turn_angle(180)
 
-    def turn_angle(self, given_angle):
+    def turn_angle(self, given_angle, speed=100):
         # Turns a given angle in increments of 90
         # in an attempt to minimize error.  
+        speed_r, speed_l = (speed, -speed) if given_angle < 0 else (-speed, speed)
 
-        for i in range(0, given_angle // 90):
+        for i in range(0, abs(given_angle) // 90):
             angle_t = curr = self.get_sensors().angle
-            while abs(curr - angle_t) < 95:
-                self.drive_direct(-100, 100) # Turn right slowly
+            while abs(curr - angle_t) < 97: # Turned more than 90 to compensate for wheel slip and encoder errors
+                self.drive_direct(speed_r, speed_l) 
                 curr += self.get_sensors().angle
             self.drive_stop()
 
@@ -120,9 +122,10 @@ class GreedyCreate2(Create2):
             Psuedocode:
                 While not at goal:
                     Grab the next best move
-                    Determine the direction
+                    Determine the relative direction
                     Move in that direction
-                    Update state
+                    Append old state to path_taken
+                    Update state to new state (or the action we took)
                     Repeat
         '''
         while not self.policy.atGoal(self.state):
@@ -136,12 +139,9 @@ class GreedyCreate2(Create2):
             if not self.debug:
                 self.move(curr_direction) 
             else:
+                # Create2 is not connected.
                 print(f'Current state: {self.state}, Moving: {curr_direction}, {self.policy.atGoal(self.state)}')
             self.state = curr_action
         self.path_taken.append(self.state)
-    
-    def remove_cycle_from_path(self):
-        # self.path_taken = self.path_taken[self.path_taken.index(self.state,self.path_taken.index(self.state), 0):self.path_taken.index(self.state)]
-        pass
         
 

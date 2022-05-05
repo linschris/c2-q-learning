@@ -6,7 +6,7 @@ class Policy:
         self.q_table = self.q_learner.q_df
         self.best_actions = {}
         self.possible_actions = {} 
-        self.max_q_val = {}
+        self.max_q_val = {} # Store maximum Q_value for a particular state (comparing amongst all possible actions)
         
         self.initializePolicy()
 
@@ -28,7 +28,6 @@ class Policy:
                 continue
             self.possible_actions[state] = self.q_learner.extract_possible_actions(state)
             self.max_q_val[state] = 0
-            # print(state, self.q_learner.extract_possible_actions(state))
             self.initializeNextStates(self.possible_actions[state])
 
 
