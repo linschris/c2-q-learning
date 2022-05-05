@@ -44,17 +44,17 @@ def agentLearn(map_arr, alpha_value, gamma_value, epsilon_value, limit, start_st
     return maze_q_learning
 
 def main():
-    map_arr = createSimpleMaze() # createSimpleMaze(), createBridgeMaze(), createLongPathMaze() were used
+    map_arr = createLongPathMaze() # createSimpleMaze(), createBridgeMaze(), createLongPathMaze() were used
 
     starting_state = (1,3)
 
     ''' Variables of learning, discount, greedy rate, as well the max iterations per episode and # of eposides'''
     # a    g    e  limit eps 
-    # 0.9, 0.9, 0.1, 10, 20 for simple maze
-    # 0.9, 0.9, 0.9, 200, 20 for bridge maze
-    # 0.9, 0.99, 0.9, 200, 20 for long path maze
+    # 0.9, 0.9, 0.1, 10, 20 for simple maze --> starting state (1, 1)
+    # 0.9, 0.9, 0.9, 200+, 20 for bridge maze --> starting state (1, 2)
+    # 0.9, 0.6, 0.9, 200+, 20 for long path maze --> starting_state (1, 3)
 
-    q_learner = agentLearn(map_arr=map_arr, alpha_value=0.9, gamma_value=0.99, epsilon_value=0.9, limit=200, start_state = starting_state, num_episodes=20)
+    q_learner = agentLearn(map_arr=map_arr, alpha_value=0.9, gamma_value=0.6, epsilon_value=0.9, limit=200, start_state = starting_state, num_episodes=20)
     c2_policy = Policy(q_learner)
     greedy_c2 = GreedyCreate2(c2_policy, '/dev/tty.usbserial-DN0266RJ', state=starting_state, debug=True)
     
